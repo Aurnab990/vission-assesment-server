@@ -20,76 +20,98 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-    try {
-      await client.connect();
-      const userCollection = client.db('treehouse').collection('tickets_user');
-      const ticketsCollection = client.db('booksDB').collection('tickets_DB');
-      
-      
+  try {
+    await client.connect();
+    const userCollection = client.db('treehouse').collection('tickets_user');
+    const ticketsCollection = client.db('booksDB').collection('tickets_DB');
+
+
     // console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    app.get('/tickets', async(req,res)=>{
+    app.get('/tickets', async (req, res) => {
       const query = {};
       const cursor = ticketsCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
-    app.post('/tickets', async(req,res)=>{
-        const ticket = req.body;
-        const result = await ticketsCollection.insertOne(ticket);
-        res.send(result);
+    app.post('/tickets', async (req, res) => {
+      const ticket = req.body;
+      const result = await ticketsCollection.insertOne(ticket);
+      res.send(result);
     });
-    app.delete('/tickets/:id', async(req,res)=>{
+    app.delete('/tickets/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await ticketsCollection.deleteOne(query);
       res.send(result);
     });
-    app.put('/tickets/:id', async(req, res)=>{
+    app.get('/tickets/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const ticket = await ticketsCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!ticket) {
+          return res.status(404).send({ message: 'Ticket not found' });
+        }
+
+        res.send(ticket);
+      } catch (error) {
+        console.error("Error fetching ticket:", error);
+        res.status(500).send({ message: 'Internal Server Error' });
+      }
+    });
+
+    app.put('/tickets/:id', async (req, res) => {
       const id = req.params.id;
       const updateItem = req.body;
-      const query = {_id: new ObjectId(id)};
-      const option = {upsert: true};
+      const query = { _id: new ObjectId(id) };
+      const option = { upsert: true };
       const updateDoc = {
         $set: {
-          status: updateItem.status
+          name: updateItem.name,
+          studentId: updateItem.studentId,
+          email: updateItem.email,
+          motherName: updateItem.motherName,
+          fatherName: updateItem.fatherName,
+          result: updateItem.result
+
         }
       };
-      const result = await ticketsCollection.updateOne(query,updateDoc,option);
+      const result = await ticketsCollection.updateOne(query, updateDoc, option);
       res.send(result);
-    })
+    });
 
-    app.get('/users', async(req,res)=>{
+    app.get('/users', async (req, res) => {
       const query = {};
       const cursor = userCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.post('/users', async(req,res)=>{
+    app.post('/users', async (req, res) => {
       const user = req.body;
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
 
-    app.delete('/users/:id', async(req,res)=>{
+    app.delete('/users/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(query);
       res.send(result);
     })
 
-    } finally {
-      // Ensures that the client will close when you finish/error
-      // await client.close();
-    }
+  } finally {
+    // Ensures that the client will close when you finish/error
+    // await client.close();
   }
-  run().catch(console.dir);
-  
-  
-  app.get('/',(req,res)=>{
-      res.send("Server is running");
-  })
-  
-  app.listen(port, ()=>{
-      console.log(`Hello server connected on ${port}`);
-  })
+}
+run().catch(console.dir);
+
+
+app.get('/', (req, res) => {
+  res.send("Server is running");
+})
+
+app.listen(port, () => {
+  console.log(`Hello server connected on ${port}`);
+})
